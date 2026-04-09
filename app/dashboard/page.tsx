@@ -1,0 +1,294 @@
+import { AppLayout } from "@/components/app-sidebar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { requireRole } from "@/lib/auth/guards"
+import { getDashboardSummaryRepository } from "@/lib/repositories/dashboard.repo"
+import { submitMoveDriverActive, submitMoveDriverOff, submitMoveDriverVehicle, submitReassignDriver } from "@/lib/actions/page-forms"
+import { AlertTriangle, CheckCircle2, FileWarning, Truck, Users } from "lucide-react"
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "N/A"
+  return new Intl.DateTimeFormat("en-ZA", { dateStyle: "medium" }).format(new Date(value))
+}
+
+function stateDaysLabel(state: string, days: number) {
+  if (state === "active") {
+    return `${days} day${days === 1 ? "" : "s"} on`
+  }
+
+  if (state === "off") {
+    return `${days} day${days === 1 ? "" : "s"} off`
+  }
+
+  if (state === "inactive") {
+    return `${days} day${days === 1 ? "" : "s"} inactive`
+  }
+
+  return `${days} day${days === 1 ? "" : "s"}`
+}
+
+function activeThresholdRow(days: number) {
+  if (days > 33) return "bg-red-50/90"
+  if (days >= 30 && days < 33) return "bg-amber-50/90"
+  return ""
+}
+
+export default async function DashboardPage() {
+  await requireRole(["admin", "dispatcher", "viewer"])
+  const { summary, activeDriverBoard, offDriverBoard, replacementDriverPool, openVehiclePool, expiryAlerts } = await getDashboardSummaryRepository()
+
+  const totalDrivers = summary?.total_drivers ?? 0
+  const activeDrivers = summary?.active_drivers ?? 0
+  const inactiveDrivers = summary?.inactive_drivers ?? 0
+  const onLeaveDrivers = summary?.on_leave_drivers ?? 0
+  const totalVehicles = summary?.total_vehicles ?? 0
+  const allocatedVehicles = summary?.allocated_vehicles ?? 0
+  const unallocatedVehicles = summary?.unallocated_vehicles ?? 0
+  const warningDrivers = summary?.warning_drivers ?? 0
+  const criticalDrivers = summary?.critical_drivers ?? 0
+  const utilization = totalVehicles > 0 ? Math.round((allocatedVehicles / totalVehicles) * 100) : 0
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Fleet Overview</h1>
+          <p className="text-muted-foreground">Live backend metrics, compliance alerts, and recent allocation activity.</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card className="bg-primary text-primary-foreground border-0">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-5 h-5" />
+                <span className="text-xs font-medium tracking-wide opacity-80">DRIVERS</span>
+              </div>
+              <p className="text-4xl font-bold mb-1">{totalDrivers}</p>
+              <p className="text-sm opacity-80">{activeDrivers} active, {inactiveDrivers + onLeaveDrivers} not active</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 className="w-5 h-5 text-accent" />
+                <span className="text-xs font-medium tracking-wide text-muted-foreground">UTILIZATION</span>
+              </div>
+              <p className="text-4xl font-bold text-foreground mb-1">{utilization}%</p>
+              <p className="text-sm text-muted-foreground">{allocatedVehicles} of {totalVehicles} vehicles allocated</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Truck className="w-5 h-5 text-amber-500" />
+                <span className="text-xs font-medium tracking-wide text-muted-foreground">VEHICLES</span>
+              </div>
+              <p className="text-4xl font-bold text-foreground mb-1">{totalVehicles}</p>
+              <p className="text-sm text-muted-foreground">{unallocatedVehicles} currently need allocation</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+                <span className="text-xs font-medium tracking-wide text-muted-foreground">STATE LIMITS</span>
+              </div>
+              <p className="text-4xl font-bold text-foreground mb-1">{warningDrivers + criticalDrivers}</p>
+              <p className="text-sm text-muted-foreground">{criticalDrivers} critical, {warningDrivers} warning</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Active Drivers</CardTitle>
+                  <Badge variant="outline">{activeDriverBoard.length} total</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <table className="w-full table-fixed">
+                    <thead className="bg-secondary/40">
+                      <tr className="border-b border-border">
+                        <th className="w-[16%] text-left py-2 px-3 text-xs font-medium uppercase text-muted-foreground">Code</th>
+                        <th className="w-[41%] text-left py-2 px-3 text-xs font-medium uppercase text-muted-foreground">Driver</th>
+                        <th className="w-[18%] text-left py-2 px-3 text-xs font-medium uppercase text-muted-foreground">Days On</th>
+                        <th className="w-[25%] text-left py-2 px-3 text-xs font-medium uppercase text-muted-foreground">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeDriverBoard.map((driver) => {
+                        const replacementOptions = replacementDriverPool.filter((candidate) => candidate.id !== driver.id)
+                        const targetVehicleOptions = openVehiclePool.filter((vehicle) => vehicle.id !== driver.current_vehicle_id)
+
+                        return (
+                          <tr
+                            key={driver.id as string}
+                            className={`border-b border-border last:border-0 align-top ${activeThresholdRow(Number(driver.current_state_days ?? 0))}`}
+                          >
+                            <td className="py-2 px-3 text-sm font-medium text-foreground align-top break-words">{driver.driver_code}</td>
+                            <td className="py-2 px-3 align-top">
+                              <div className="break-words text-sm text-foreground">{driver.first_name} {driver.surname}</div>
+                              {driver.current_vehicle ? (
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {driver.current_vehicle.vehicle_number} - {driver.current_vehicle.registration_number ?? "No reg"}
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="py-2 px-3 text-sm text-muted-foreground align-top">{stateDaysLabel("active", Number(driver.current_state_days ?? 0))}</td>
+                            <td className="py-2 px-3 align-top">
+                              <div className="flex min-w-0 flex-col gap-2">
+                                <form action={submitMoveDriverOff}>
+                                  <input type="hidden" name="driverId" value={String(driver.id)} />
+                                  <input type="hidden" name="reasonCode" value="dashboard_move_off" />
+                                  <Button type="submit" size="sm" variant="outline" className="w-full px-2">Move Off</Button>
+                                </form>
+                                {driver.current_vehicle_id ? (
+                                  <>
+                                    <form action={submitReassignDriver} className="flex flex-col gap-2">
+                                      <input type="hidden" name="vehicleId" value={String(driver.current_vehicle_id)} />
+                                      <select
+                                        name="newDriverId"
+                                        className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs"
+                                        required
+                                        defaultValue=""
+                                        disabled={replacementOptions.length === 0}
+                                      >
+                                        <option value="" disabled>
+                                          {replacementOptions.length === 0 ? "No eligible replacements" : "Select replacement"}
+                                        </option>
+                                        {replacementOptions.map((candidate) => (
+                                          <option key={candidate.id as string} value={String(candidate.id)}>
+                                            {candidate.driver_code} - {candidate.first_name} {candidate.surname}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <Button type="submit" size="sm" className="w-full px-2" disabled={replacementOptions.length === 0}>
+                                        Exchange
+                                      </Button>
+                                    </form>
+                                    <form action={submitMoveDriverVehicle} className="flex flex-col gap-2">
+                                      <input type="hidden" name="allocationId" value={String(driver.current_allocation_id)} />
+                                      <select
+                                        name="targetVehicleId"
+                                        className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs"
+                                        required
+                                        defaultValue=""
+                                        disabled={targetVehicleOptions.length === 0}
+                                      >
+                                        <option value="" disabled>
+                                          {targetVehicleOptions.length === 0 ? "No open vehicles" : "Select vehicle"}
+                                        </option>
+                                        {targetVehicleOptions.map((vehicle) => (
+                                          <option key={vehicle.id as string} value={String(vehicle.id)}>
+                                            {vehicle.vehicle_number} - {vehicle.registration_number ?? "No reg"}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <Button type="submit" size="sm" variant="secondary" className="w-full px-2" disabled={targetVehicleOptions.length === 0}>
+                                        Move Vehicle
+                                      </Button>
+                                    </form>
+                                  </>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Inactive / Off Drivers</CardTitle>
+                  <Badge variant="outline">{offDriverBoard.length} total</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <table className="w-full table-fixed">
+                    <thead className="bg-secondary/40">
+                      <tr className="border-b border-border">
+                        <th className="w-[14%] text-left py-2 px-3 text-xs font-medium uppercase text-muted-foreground">Code</th>
+                        <th className="w-[42%] text-left py-2 px-3 text-xs font-medium uppercase text-muted-foreground">Driver</th>
+                        <th className="w-[18%] text-left py-2 px-3 text-xs font-medium uppercase text-muted-foreground">Days Off</th>
+                        <th className="w-[26%] text-left py-2 px-3 text-xs font-medium uppercase text-muted-foreground">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {offDriverBoard.map((driver) => (
+                        <tr key={driver.id as string} className="border-b border-border last:border-0 align-top">
+                          <td className="py-2 px-3 text-sm font-medium text-foreground align-top break-words">{driver.driver_code}</td>
+                          <td className="py-2 px-3 text-sm text-foreground align-top break-words">{driver.first_name} {driver.surname}</td>
+                          <td className="py-2 px-3 text-sm text-muted-foreground align-top">
+                            {stateDaysLabel(String(driver.current_state), Number(driver.current_state_days ?? 0))}
+                          </td>
+                          <td className="py-2 px-3">
+                            <form action={submitMoveDriverActive}>
+                              <input type="hidden" name="driverId" value={String(driver.id)} />
+                              <Button type="submit" size="sm" className="h-8 w-full whitespace-nowrap px-3 text-xs">Move Active</Button>
+                            </form>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Compliance Alerts</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                <p className="text-sm font-medium text-red-700">{criticalDrivers} drivers are above the 33-day threshold</p>
+                <p className="text-xs text-red-600 mt-1">These drivers should be pulled off or replaced immediately.</p>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-sm font-medium text-amber-700">{warningDrivers} drivers are above 30 days</p>
+                <p className="text-xs text-amber-600 mt-1">These drivers are approaching critical reassignment status.</p>
+              </div>
+
+              <div className="space-y-2">
+                {expiryAlerts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming licence or PDP alerts.</p>
+                ) : (
+                  expiryAlerts.slice(0, 8).map((driver) => (
+                    <div key={driver.id as string} className="rounded-lg border border-border p-3">
+                      <div className="flex items-center gap-2">
+                        <FileWarning className="w-4 h-4 text-amber-600" />
+                        <p className="text-sm font-medium text-foreground">
+                          {driver.first_name} {driver.surname}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <Badge variant="outline">Code {driver.driver_code}</Badge>
+                        <span>License: {formatDate(driver.license_expiry_date as string | null)}</span>
+                        <span>PDP: {formatDate(driver.pdp_expiry_date as string | null)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </AppLayout>
+  )
+}
