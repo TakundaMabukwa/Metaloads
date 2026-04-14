@@ -95,14 +95,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background">
-      <aside className="w-56 shrink-0 overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <aside className="w-56 shrink-0 overflow-hidden border-r border-[#365314] bg-[#166534] text-[#fefce8]">
         <div className="flex h-full flex-col">
           <div className="p-4 pt-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-[#fef08a] shadow-sm">
                 <Image
-                  src="/Metafuellog.jpeg"
-                  alt="Metafuel logo"
+                  src="/sidebar-logo.jpg"
+                  alt="MetaLoad logo"
                   width={44}
                   height={44}
                   className="h-full w-full object-cover"
@@ -110,7 +110,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 />
               </div>
               <div>
-                <h1 className="text-base font-semibold leading-tight">MetaLoad</h1>
+                <h1 className="text-base font-semibold leading-tight">MG JACOBSZ</h1>
               </div>
             </div>
           </div>
@@ -125,8 +125,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      ? "bg-[#facc15] text-[#14532d] shadow-sm"
+                      : "text-[#fefce8]/85 hover:bg-[#15803d] hover:text-[#fefce8]"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -136,25 +136,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          <div className="border-t border-sidebar-border p-4">
+          <div className="border-t border-[#365314] p-4">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 ring-2 ring-sidebar-accent/60">
+                <Avatar className="h-10 w-10 ring-2 ring-[#84cc16]/60">
                   <AvatarImage src={shellUser.avatar} alt={displayName} />
-                  <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs">
+                  <AvatarFallback className="bg-[#14532d] text-[#fefce8] text-xs">
                     {avatarLabel}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{displayName}</p>
-                  <p className="truncate text-xs text-sidebar-foreground/70">{shellUser.email}</p>
+                  <p className="truncate text-xs text-[#fefce8]/70">{shellUser.email}</p>
                 </div>
               </div>
               <Button
                 type="button"
                 variant="secondary"
                 onClick={handleLogout}
-                className="h-9 w-full justify-start border-0 bg-sidebar-accent/90 px-3 text-sidebar-accent-foreground hover:bg-sidebar-accent"
+                className="h-9 w-full justify-start border-0 bg-[#14532d] px-3 text-[#fefce8] hover:bg-[#15803d]"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout

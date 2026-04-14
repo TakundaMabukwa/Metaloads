@@ -52,8 +52,8 @@ export function LoginForm({
         <div className="flex items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
             <Image
-              src="/Metafuellog.jpeg"
-              alt="Metafuel logo"
+              src="/sidebar-logo.jpg"
+              alt="MG JACOBSZ logo"
               width={56}
               height={56}
               className="h-full w-full object-cover"
@@ -61,7 +61,7 @@ export function LoginForm({
             />
           </div>
           <div className="text-left">
-            <h1 className="text-2xl font-semibold tracking-tight text-white">MetaLoad</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-white">MG JACOBSZ</h1>
           </div>
         </div>
       </div>
