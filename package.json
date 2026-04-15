@@ -10,7 +10,9 @@
     "db:apply-fleet-schema": "node scripts/apply-fleet-schema.mjs",
     "db:import-metaloads": "node scripts/import-metaloads-workbook.mjs",
     "db:import-employee-shifts": "node scripts/import-employee-shifts.mjs",
-    "db:reset-import-week-off": "node scripts/reset-and-import-week-off-schedule.mjs"
+    "db:reset-import-week-off": "node scripts/reset-and-import-week-off-schedule.mjs",
+    "cron:monitor": "node scripts/run-cron-job.mjs monitor",
+    "cron:auto-allocate": "node scripts/run-cron-job.mjs auto-allocate"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

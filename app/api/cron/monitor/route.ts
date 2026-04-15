@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server"
-import { requireCronSecret } from "@/lib/env"
+import { getCronSecret } from "@/lib/env"
 import { monitorDriverStates } from "@/lib/services/monitoring.service"
 
+function isLocalRequest(request: Request) {
+  const hostname = new URL(request.url).hostname
+  return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1"
+}
+
 function isAuthorized(request: Request) {
+  const secret = getCronSecret()
+  if (!secret) {
+    return isLocalRequest(request)
+  }
+
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
-  return token === requireCronSecret()
+  return token === secret
 }
 
 export async function POST(request: Request) {
@@ -15,4 +25,3 @@ export async function POST(request: Request) {
   const result = await monitorDriverStates()
   return NextResponse.json(result)
 }
-

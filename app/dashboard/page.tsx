@@ -123,15 +123,21 @@ export default async function DashboardPage({
             href={vehiclePanelHref}
             className="block"
           >
-            <Card className={isVehiclePanelOpen ? "border-primary ring-2 ring-primary/20" : ""}>
+            <Card
+              className={`border-0 ${
+                isVehiclePanelOpen
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-card-foreground hover:border-primary/20 hover:bg-accent/20"
+              }`}
+            >
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Truck className="w-5 h-5 text-amber-500" />
-                  <span className="text-xs font-medium tracking-wide text-muted-foreground">VEHICLES</span>
+                  <Truck className={`w-5 h-5 ${isVehiclePanelOpen ? "text-primary-foreground" : "text-amber-500"}`} />
+                  <span className={`text-xs font-medium tracking-wide ${isVehiclePanelOpen ? "opacity-80" : "text-muted-foreground"}`}>VEHICLES</span>
                 </div>
-                <p className="text-4xl font-bold text-foreground mb-1">{totalVehicles}</p>
-                <p className="text-sm text-muted-foreground">{unallocatedVehicles} currently need allocation</p>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className={`text-4xl font-bold mb-1 ${isVehiclePanelOpen ? "text-primary-foreground" : "text-foreground"}`}>{totalVehicles}</p>
+                <p className={`text-sm ${isVehiclePanelOpen ? "opacity-80" : "text-muted-foreground"}`}>{unallocatedVehicles} currently need allocation</p>
+                <p className={`mt-2 text-xs ${isVehiclePanelOpen ? "opacity-80" : "text-muted-foreground"}`}>
                   {isVehiclePanelOpen ? "Click to hide active vehicle board" : "Click to view active vehicles and assigned drivers"}
                 </p>
               </CardContent>

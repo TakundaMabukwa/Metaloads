@@ -55,6 +55,10 @@ export function requireCronSecret(): string {
   return requireEnv("CRON_SECRET")
 }
 
+export function getCronSecret(): string | null {
+  return process.env.CRON_SECRET ?? null
+}
+
 export function requirePingramApiKey(): string {
   return requireEnv("PINGRAM_API_KEY")
 }
