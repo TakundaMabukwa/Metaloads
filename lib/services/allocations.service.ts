@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth/guards"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/service-role"
 import { isDriverEligibleForAllocation } from "@/lib/services/allocation-eligibility"
 import { sendDriverAllocationSms } from "@/lib/services/sms.service"
 import {
@@ -12,7 +13,7 @@ import {
 export async function assignDriverToVehicle(input: unknown) {
   const user = await requireRole(["admin", "dispatcher"])
   const payload = assignDriverSchema.parse(input)
-  const supabase = await createServerSupabaseClient()
+  const supabase = createServiceRoleClient()
 
   const { data: driver, error: driverError } = await supabase
     .from("drivers")
@@ -61,7 +62,7 @@ export async function assignDriverToVehicle(input: unknown) {
 export async function reassignDriver(input: unknown) {
   const user = await requireRole(["admin", "dispatcher"])
   const payload = reassignDriverSchema.parse(input)
-  const supabase = await createServerSupabaseClient()
+  const supabase = createServiceRoleClient()
 
   const { data: driver, error: driverError } = await supabase
     .from("drivers")
@@ -110,7 +111,7 @@ export async function reassignDriver(input: unknown) {
 export async function removeAllocation(input: unknown) {
   const user = await requireRole(["admin", "dispatcher"])
   const payload = removeAllocationSchema.parse(input)
-  const supabase = await createServerSupabaseClient()
+  const supabase = createServiceRoleClient()
 
   const { data, error } = await supabase.rpc("remove_allocation_tx", {
     p_allocation_id: payload.allocationId,
@@ -127,7 +128,7 @@ export async function removeAllocation(input: unknown) {
 export async function moveActiveDriverToVehicle(input: unknown) {
   const user = await requireRole(["admin", "dispatcher"])
   const payload = moveActiveDriverVehicleSchema.parse(input)
-  const supabase = await createServerSupabaseClient()
+  const supabase = createServiceRoleClient()
 
   const { data: allocation, error: allocationError } = await supabase
     .from("allocations")

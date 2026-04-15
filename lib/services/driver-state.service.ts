@@ -1,6 +1,6 @@
 import { requireRole } from "@/lib/auth/guards"
 import { createServiceRoleClient } from "@/lib/supabase/service-role"
-import { sendDriverMovedOnSms } from "@/lib/services/sms.service"
+import { sendDriverAllocationSms, sendDriverMovedOnSms } from "@/lib/services/sms.service"
 import {
   moveDriverStateSchema,
   updateDriverStateSchema,
@@ -45,6 +45,94 @@ export async function moveDriverActive(input: unknown) {
 
   if (error) throw error
 
+  const { data: activeVehicleAllocations, error: activeVehicleAllocationsError } = await supabase
+    .from("allocations")
+    .select("vehicle_id")
+    .is("ended_at", null)
+    .in("status", ["pending", "active", "locked"])
+
+  if (activeVehicleAllocationsError) {
+    await supabase.rpc("upsert_driver_state_tx", {
+      p_driver_id: payload.driverId,
+      p_new_state: "off",
+      p_reason_code: "manual_active_failed",
+      p_note: "Move active reverted because active vehicle allocations could not be loaded",
+      p_actor_user_id: user.id,
+      p_source: "system",
+    })
+
+    throw activeVehicleAllocationsError
+  }
+
+  const occupiedVehicleIds = (activeVehicleAllocations ?? [])
+    .map((row) => row.vehicle_id)
+    .filter(Boolean) as string[]
+
+  let openVehicleQuery = supabase
+    .from("vehiclesc")
+    .select("id, vehicle_number, registration_number")
+    .eq("allocation_locked", false)
+
+  if (occupiedVehicleIds.length > 0) {
+    openVehicleQuery = openVehicleQuery.not(
+      "id",
+      "in",
+      `(${occupiedVehicleIds.map((id) => `"${id}"`).join(",")})`
+    )
+  }
+
+  const { data: openVehicles, error: openVehiclesError } = await openVehicleQuery
+
+  if (openVehiclesError) {
+    await supabase.rpc("upsert_driver_state_tx", {
+      p_driver_id: payload.driverId,
+      p_new_state: "off",
+      p_reason_code: "manual_active_failed",
+      p_note: "Move active reverted because free vehicles could not be loaded",
+      p_actor_user_id: user.id,
+      p_source: "system",
+    })
+
+    throw openVehiclesError
+  }
+
+  if (!openVehicles || openVehicles.length === 0) {
+    await supabase.rpc("upsert_driver_state_tx", {
+      p_driver_id: payload.driverId,
+      p_new_state: "off",
+      p_reason_code: "manual_active_failed",
+      p_note: "Move active reverted because no free vehicles were available",
+      p_actor_user_id: user.id,
+      p_source: "system",
+    })
+
+    throw new Error("No free vehicles are available to assign")
+  }
+
+  const randomVehicle = openVehicles[Math.floor(Math.random() * openVehicles.length)]
+
+  const { data: allocationResult, error: allocationError } = await supabase.rpc("assign_driver_to_vehicle_tx", {
+    p_vehicle_id: randomVehicle.id,
+    p_driver_id: payload.driverId,
+    p_effective_from: null,
+    p_notes: payload.notes ?? null,
+    p_actor_user_id: user.id,
+    p_allocation_type: "manual",
+  })
+
+  if (allocationError) {
+    await supabase.rpc("upsert_driver_state_tx", {
+      p_driver_id: payload.driverId,
+      p_new_state: "off",
+      p_reason_code: "manual_active_failed",
+      p_note: "Move active reverted because vehicle assignment failed",
+      p_actor_user_id: user.id,
+      p_source: "system",
+    })
+
+    throw allocationError
+  }
+
   try {
     await sendDriverMovedOnSms({
       driverId: payload.driverId,
@@ -54,7 +142,17 @@ export async function moveDriverActive(input: unknown) {
     console.error("Failed to send move active SMS", smsError)
   }
 
-  return data
+  try {
+    await sendDriverAllocationSms({
+      driverId: payload.driverId,
+      vehicleId: String(randomVehicle.id),
+      effectiveFrom: null,
+    })
+  } catch (smsError) {
+    console.error("Failed to send move active allocation SMS", smsError)
+  }
+
+  return allocationResult ?? data
 }
 
 export async function updateDriverState(input: unknown) {

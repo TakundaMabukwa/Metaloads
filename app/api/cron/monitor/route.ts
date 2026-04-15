@@ -1,24 +1,11 @@
 import { NextResponse } from "next/server"
-import { getCronSecret } from "@/lib/env"
+import { authorizeCronRequest } from "@/lib/auth/cron-request"
 import { monitorDriverStates } from "@/lib/services/monitoring.service"
 
-function isLocalRequest(request: Request) {
-  const hostname = new URL(request.url).hostname
-  return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1"
-}
-
-function isAuthorized(request: Request) {
-  const secret = getCronSecret()
-  if (!secret) {
-    return isLocalRequest(request)
-  }
-
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
-  return token === secret
-}
-
 export async function POST(request: Request) {
-  if (!isAuthorized(request)) {
+  const auth = await authorizeCronRequest(request)
+
+  if (!auth.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

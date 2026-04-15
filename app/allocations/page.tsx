@@ -1,18 +1,18 @@
 import { AppLayout } from "@/components/app-sidebar"
 import { AutoAllocateButton } from "@/components/auto-allocate-button"
+import { MoveDriverActiveButton } from "@/components/move-driver-active-button"
+import { RemoveAllocationButton } from "@/components/remove-allocation-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { requireRole } from "@/lib/auth/guards"
 import {
   submitAssignDriver,
-  submitMoveDriverActive,
   submitMoveDriverOff,
   submitMoveDriverVehicle,
-  submitRemoveAllocation,
 } from "@/lib/actions/page-forms"
 import { getAllocationsWorkspaceRepository } from "@/lib/repositories/allocations.repo"
-import { CheckCircle2, Truck, UserMinus, Users } from "lucide-react"
+import { CheckCircle2, Truck, Users } from "lucide-react"
 
 function stateBadge(state: string) {
   switch (state) {
@@ -96,10 +96,7 @@ export default async function AllocationsPage() {
                       <Badge variant="outline" className={stateBadge(String(driver.current_state))}>
                         {String(driver.current_state).replace("_", " ")}
                       </Badge>
-                      <form action={submitMoveDriverActive}>
-                        <input type="hidden" name="driverId" value={String(driver.id)} />
-                        <Button type="submit" size="sm">Move Active</Button>
-                      </form>
+                       <MoveDriverActiveButton driverId={String(driver.id)} />
                       <form action={submitMoveDriverOff}>
                         <input type="hidden" name="driverId" value={String(driver.id)} />
                         <input type="hidden" name="reasonCode" value="manual_off" />
@@ -165,14 +162,7 @@ export default async function AllocationsPage() {
                           </Button>
                         </form>
 
-                        <form action={submitRemoveAllocation}>
-                          <input type="hidden" name="allocationId" value={String(allocation.id)} />
-                          <input type="hidden" name="endedReason" value="manual_remove" />
-                          <Button type="submit" size="sm" variant="outline" className="h-9 w-full sm:w-auto">
-                            <UserMinus className="mr-2 h-4 w-4" />
-                            Remove
-                          </Button>
-                        </form>
+                        <RemoveAllocationButton allocationId={String(allocation.id)} endedReason="manual_remove" />
                       </div>
                     </div>
                   </div>
