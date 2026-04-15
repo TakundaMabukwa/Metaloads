@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/app-sidebar"
+import { DriverFormModal } from "@/components/driver-form-modal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -88,11 +89,12 @@ export default async function DriversPage() {
   const complianceRows = driverIds.length
     ? await supabase
         .from("drivers")
-        .select("id, driver_code, first_name, surname, license_expiry_date, pdp_expiry_date")
+        .select("id, driver_code, employee_number, first_name, surname, display_name, cell_number, email_address, license_number, license_expiry_date, pdp_expiry_date, passport_expiry, training_last_done, current_state, available, is_allocatable")
         .in("id", driverIds)
     : { data: [] }
 
   const complianceByDriverId = new Map((complianceRows.data ?? []).map((row) => [row.id as string, row]))
+  const editorByDriverId = new Map((complianceRows.data ?? []).map((row) => [row.id as string, row]))
   const driverExpiryAnalysis = rows
     .map((driver) => {
       const compliance = complianceByDriverId.get(driver.id as string)
@@ -126,9 +128,12 @@ export default async function DriversPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Drivers Directory</h1>
-          <p className="text-muted-foreground">Live driver status, leave management, and state transition controls.</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Drivers Directory</h1>
+            <p className="text-muted-foreground">Live driver status, leave management, and state transition controls.</p>
+          </div>
+          <DriverFormModal triggerLabel="Add Driver" />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -218,6 +223,7 @@ export default async function DriversPage() {
                     <tbody>
                       {rows.map((driver) => {
                         const leave = leaveByDriverId.get(driver.id as string)
+                        const driverEditor = editorByDriverId.get(driver.id as string)
 
                         return (
                           <tr key={driver.id as string} className="border-b border-border last:border-0 align-top">
@@ -255,6 +261,30 @@ export default async function DriversPage() {
                                   <input type="hidden" name="driverId" value={String(driver.id)} />
                                   <Button type="submit" size="sm">Move Active</Button>
                                 </form>
+                                {driverEditor ? (
+                                  <DriverFormModal
+                                    triggerLabel="Edit"
+                                    triggerVariant="secondary"
+                                    driver={{
+                                      id: String(driverEditor.id),
+                                      driver_code: driverEditor.driver_code as string | null,
+                                      employee_number: driverEditor.employee_number as string | null,
+                                      first_name: driverEditor.first_name as string | null,
+                                      surname: driverEditor.surname as string | null,
+                                      display_name: driverEditor.display_name as string | null,
+                                      cell_number: driverEditor.cell_number as string | null,
+                                      email_address: driverEditor.email_address as string | null,
+                                      license_number: driverEditor.license_number as string | null,
+                                      license_expiry_date: driverEditor.license_expiry_date as string | null,
+                                      pdp_expiry_date: driverEditor.pdp_expiry_date as string | null,
+                                      passport_expiry: driverEditor.passport_expiry as string | null,
+                                      training_last_done: driverEditor.training_last_done as string | null,
+                                      current_state: driverEditor.current_state as string | null,
+                                      available: driverEditor.available as boolean | null,
+                                      is_allocatable: driverEditor.is_allocatable as boolean | null,
+                                    }}
+                                  />
+                                ) : null}
                               </div>
                               {leave ? (
                                 <form action={submitEndDriverLeave}>

@@ -50,10 +50,10 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex justify-center">
         <div className="flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
+          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-[#132338] shadow-sm">
             <Image
-              src="/sidebar-logo.jpg"
-              alt="MG JACOBSZ logo"
+              src="/Metafuellog.jpeg"
+              alt="METALOADS logo"
               width={56}
               height={56}
               className="h-full w-full object-cover"
@@ -61,7 +61,7 @@ export function LoginForm({
             />
           </div>
           <div className="text-left">
-            <h1 className="text-2xl font-semibold tracking-tight text-white">MG JACOBSZ</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-white">METALOADS</h1>
           </div>
         </div>
       </div>

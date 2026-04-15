@@ -29,6 +29,8 @@ export async function monitorDriverStates() {
     let activatedLeave = 0
     let completedLeave = 0
     let processedDrivers = 0
+    let driversMovedOff = 0
+    let reallocationsTriggered = 0
 
     const { data: scheduledLeave, error: scheduledLeaveError } = await supabase
       .from("driver_leave")
@@ -95,16 +97,62 @@ export async function monitorDriverStates() {
       processedDrivers++
     }
 
-    await finishCronJob(run.id, "success", { activatedLeave, completedLeave, processedDrivers })
+    const { data: overdueActiveDrivers, error: overdueActiveDriversError } = await supabase
+      .from("drivers")
+      .select("id, current_allocation_id")
+      .eq("current_state", "active")
+      .gte("current_state_days", 33)
+
+    if (overdueActiveDriversError) throw overdueActiveDriversError
+
+    for (const driver of overdueActiveDrivers ?? []) {
+      if (driver.current_allocation_id) {
+        const { error: removeError } = await supabase.rpc("remove_allocation_tx", {
+          p_allocation_id: driver.current_allocation_id,
+          p_ended_reason: "state_limit_reached_cron",
+          p_notes: "Automatically removed after reaching 33 active days",
+          p_actor_user_id: null,
+        })
+
+        if (removeError) throw removeError
+      }
+
+      const { error: stateError } = await supabase.rpc("upsert_driver_state_tx", {
+        p_driver_id: driver.id,
+        p_new_state: "off",
+        p_reason_code: "state_limit_reached_cron",
+        p_note: "Automatically moved off after reaching 33 active days",
+        p_actor_user_id: null,
+        p_source: "cron",
+      })
+
+      if (stateError) throw stateError
+      driversMovedOff++
+    }
+
+    if (driversMovedOff > 0) {
+      const allocationResult = await autoAllocateVehicles()
+      if (allocationResult.status === "success") {
+        reallocationsTriggered = (allocationResult.allocated ?? 0) + (allocationResult.rotationAssigned ?? 0)
+      }
+    }
+
+    await finishCronJob(run.id, "success", {
+      activatedLeave,
+      completedLeave,
+      processedDrivers,
+      driversMovedOff,
+      reallocationsTriggered,
+    })
 
     await writeAuditLog({
       entityType: "cron_job",
       entityId: run.id,
       action: "monitor_driver_states",
-      metadata: { activatedLeave, completedLeave, processedDrivers },
+      metadata: { activatedLeave, completedLeave, processedDrivers, driversMovedOff, reallocationsTriggered },
     })
 
-    return { status: "success" as const, activatedLeave, completedLeave, processedDrivers }
+    return { status: "success" as const, activatedLeave, completedLeave, processedDrivers, driversMovedOff, reallocationsTriggered }
   } catch (error) {
     await finishCronJob(run.id, "failed", {}, error instanceof Error ? error.message : "Unknown monitoring error")
     throw error

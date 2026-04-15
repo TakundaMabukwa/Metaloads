@@ -1,6 +1,8 @@
 import { AppLayout } from "@/components/app-sidebar"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { VehicleFormModal } from "@/components/vehicle-form-modal"
 import { requireRole } from "@/lib/auth/guards"
 import { listVehiclesRepository } from "@/lib/repositories/vehicles.repo"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
@@ -82,10 +84,13 @@ export default async function VehiclesPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Fleet Inventory</h1>
-          <p className="text-muted-foreground">Live vehicle master data, assignment status, and operational readiness.</p>
-          <p className="mt-2 text-sm text-muted-foreground">{rows.length} vehicles loaded from the fleet register.</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Fleet Inventory</h1>
+            <p className="text-muted-foreground">Live vehicle master data, assignment status, and operational readiness.</p>
+            <p className="mt-2 text-sm text-muted-foreground">{rows.length} vehicles loaded from the fleet register.</p>
+          </div>
+          <VehicleFormModal triggerLabel="Add Vehicle" />
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -156,7 +161,8 @@ export default async function VehiclesPage() {
                         <th className="text-left py-2 pr-3 text-xs font-medium text-muted-foreground uppercase">Type</th>
                         <th className="text-left py-2 pr-3 text-xs font-medium text-muted-foreground uppercase">Assignment</th>
                         <th className="text-left py-2 pr-3 text-xs font-medium text-muted-foreground uppercase">Priority</th>
-                        <th className="text-left py-2 text-xs font-medium text-muted-foreground uppercase">Status</th>
+                        <th className="text-left py-2 pr-3 text-xs font-medium text-muted-foreground uppercase">Status</th>
+                        <th className="text-left py-2 text-xs font-medium text-muted-foreground uppercase">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -187,7 +193,7 @@ export default async function VehiclesPage() {
                               )}
                             </td>
                             <td className="py-3 pr-3 text-sm text-foreground">{vehicle.vehicle_priority ?? "-"}</td>
-                            <td className="py-3">
+                            <td className="py-3 pr-3">
                               <Badge variant="outline" className={tone(Boolean(vehicle.needs_allocation), Boolean(vehicle.allocation_locked))}>
                                 {vehicle.allocation_locked
                                   ? "Locked"
@@ -195,6 +201,31 @@ export default async function VehiclesPage() {
                                   ? "Needs allocation"
                                   : "Allocated"}
                               </Badge>
+                            </td>
+                            <td className="py-3">
+                              <VehicleFormModal
+                                triggerLabel="Edit"
+                                triggerVariant="secondary"
+                                vehicle={{
+                                  id: String(vehicle.id),
+                                  vehicle_number: vehicle.vehicle_number as string | null,
+                                  registration_number: vehicle.registration_number as string | null,
+                                  display_label: vehicle.display_label as string | null,
+                                  make: vehicle.make as string | null,
+                                  model: vehicle.model as string | null,
+                                  vehicle_type: vehicle.vehicle_type as string | null,
+                                  vin_number: vehicle.vin_number as string | null,
+                                  trailer_1_registration: vehicle.trailer_1_registration as string | null,
+                                  trailer_2_registration: vehicle.trailer_2_registration as string | null,
+                                  branch_name: vehicle.branch_name as string | null,
+                                  dekra_service_status: vehicle.dekra_service_status as string | null,
+                                  license_expiry_date: vehicle.license_expiry_date as string | null,
+                                  vehicle_priority: vehicle.vehicle_priority as number | null,
+                                  status: vehicle.status as string | null,
+                                  needs_allocation: vehicle.needs_allocation as boolean | null,
+                                  allocation_locked: vehicle.allocation_locked as boolean | null,
+                                }}
+                              />
                             </td>
                           </tr>
                         )
