@@ -43,6 +43,13 @@ function formatShortDate(value: Date) {
   }).format(value)
 }
 
+function dateKey(value: Date) {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, "0")
+  const day = String(value.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 function weekdayLetter(date: Date) {
   const day = date.getDay()
   if (day === 0 || day === 6) return "S"
@@ -72,13 +79,14 @@ export function DashboardSevenDayView({
   offDriverBoard: DriverRow[]
 }) {
   const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()))
-  const sevenDayColumns = Array.from({ length: 7 }, (_, index) => addDays(new Date(), index))
-  const selectedDateKey = startOfDay(selectedDate).toISOString().slice(0, 10)
+  const weekStart = useMemo(() => startOfDay(selectedDate), [selectedDate])
+  const sevenDayColumns = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)), [weekStart])
+  const selectedDateKey = useMemo(() => dateKey(weekStart), [weekStart])
 
   const driversComingOff = useMemo(
     () =>
       activeDriverBoard.filter((driver) => {
-        const offDateKey = offDateForDriver(Number(driver.current_state_days ?? 0)).toISOString().slice(0, 10)
+        const offDateKey = dateKey(offDateForDriver(Number(driver.current_state_days ?? 0)))
         return offDateKey === selectedDateKey
       }),
     [activeDriverBoard, selectedDateKey]
@@ -87,7 +95,7 @@ export function DashboardSevenDayView({
   const driversComingOn = useMemo(
     () =>
       offDriverBoard.filter((driver) => {
-        const onDateKey = onDateForDriver(Number(driver.current_state_days ?? 0)).toISOString().slice(0, 10)
+        const onDateKey = dateKey(onDateForDriver(Number(driver.current_state_days ?? 0)))
         return onDateKey === selectedDateKey
       }),
     [offDriverBoard, selectedDateKey]
@@ -186,7 +194,7 @@ export function DashboardSevenDayView({
                   {activeDriverBoard.map((driver) => {
                     const daysOn = Number(driver.current_state_days ?? 0)
                     const offDate = offDateForDriver(daysOn)
-                    const offDateKey = offDate.toISOString().slice(0, 10)
+                    const offDateKey = dateKey(offDate)
                     const vehicleLabel = driver.current_vehicle?.vehicle_number ?? "Assigned"
                     const vehicleReg = driver.current_vehicle?.registration_number ?? ""
                     const daysUntilOff = Math.max(0, 33 - daysOn)
@@ -203,10 +211,10 @@ export function DashboardSevenDayView({
                           </div>
                         </td>
                         {sevenDayColumns.map((date) => {
-                          const dateKey = date.toISOString().slice(0, 10)
-                          const isOnAssignment = dateKey <= offDateKey
+                          const columnDateKey = dateKey(date)
+                          const isOnAssignment = columnDateKey <= offDateKey
                           return (
-                            <td key={`${driver.id}-${dateKey}`} className="px-2 py-3 text-center">
+                            <td key={`${driver.id}-${columnDateKey}`} className="px-2 py-3 text-center">
                               <div
                                 className={`rounded-md px-2 py-2 text-xs font-medium ${
                                   isOnAssignment ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500"
