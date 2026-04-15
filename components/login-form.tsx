@@ -49,8 +49,8 @@ export function LoginForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex justify-center">
-        <div className="flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-[#132338] shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-[#132338] shadow-sm ring-1 ring-white/10">
             <Image
               src="/Metafuellog.jpeg"
               alt="METALOADS logo"
@@ -69,8 +69,8 @@ export function LoginForm({
       <Card className="mx-auto w-full max-w-xl shadow-lg">
         <CardHeader className="space-y-6 text-center">
           <div className="space-y-2">
-            <CardTitle className="text-3xl font-bold text-gray-900">Welcome Back!</CardTitle>
-            <CardDescription className="text-base text-gray-600">
+              <CardTitle className="text-3xl font-bold text-[#132338]">Welcome Back!</CardTitle>
+              <CardDescription className="text-base text-slate-600">
               Let&apos;s get you signed in securely.
             </CardDescription>
           </div>
@@ -119,11 +119,11 @@ export function LoginForm({
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
-            <Button
-              type="submit"
-              className="h-12 w-full bg-gray-900 text-base font-medium text-white hover:bg-gray-800"
-              disabled={isLoading}
-            >
+              <Button
+                type="submit"
+                className="h-12 w-full bg-[#1b75bb] text-base font-medium text-white hover:bg-[#155f97]"
+                disabled={isLoading}
+              >
               {isLoading ? "Signing in..." : "Log in with Email"}
             </Button>
           </form>
