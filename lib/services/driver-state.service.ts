@@ -45,6 +45,27 @@ export async function moveDriverActive(input: unknown) {
 
   if (error) throw error
 
+  const { error: driverFlagError } = await supabase
+    .from("drivers")
+    .update({
+      is_allocatable: true,
+      available: true,
+    })
+    .eq("id", payload.driverId)
+
+  if (driverFlagError) {
+    await supabase.rpc("upsert_driver_state_tx", {
+      p_driver_id: payload.driverId,
+      p_new_state: "off",
+      p_reason_code: "manual_active_failed",
+      p_note: "Move active reverted because driver flags could not be updated",
+      p_actor_user_id: user.id,
+      p_source: "system",
+    })
+
+    throw driverFlagError
+  }
+
   const { data: activeVehicleAllocations, error: activeVehicleAllocationsError } = await supabase
     .from("allocations")
     .select("vehicle_id")
